@@ -1,8 +1,4 @@
-# Kiaro Game Engine CMake Build File
-# This software is licensed under the Draconic Free License Version 1.
-# Please refer to LICENSE.txt for more information.
-# Copyright (c) 2014 Draconic Entertainment
-
+# CMake lists to build the sub table example
 CMAKE_MINIMUM_REQUIRED (VERSION 2.6)
 PROJECT (Subtables)
 
