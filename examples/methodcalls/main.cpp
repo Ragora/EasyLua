@@ -15,25 +15,77 @@ int main(int argc, char *argv[])
     lua_gc(lua, LUA_GCRESTART, 0);
     luaL_dofile(lua, "main.lua");
 
-    std::cout << "Initialized Lua " << std::endl;
+    std::cout << "---- Initialized Lua " << std::endl;
 
+    // Perform a call and get the number of returned elements
     const unsigned int returnCount = EasyLua::call(lua, "easyLuaMultiParamMultiReturnTest", 1, "Two", 3.14f);
-
     std::cout << "Return Count: " << returnCount << std::endl;
-    int integerReturn = -1;
+
+    /**
+        The above code would look like this with straight Lua manipulations:
+
+        const int stackTop = lua_gettop(lua);
+        lua_getglobal(lua, "easyLuaMultiParamMultiReturnTest");
+        lua_pushinteger(lua, 1);
+        lua_pushstring(lua, "Two");
+        lua_pushnumber(lua, 3.14f);
+        lua_call(lua, 3, LUA_MULTRET);
+
+        const int returnCount = lua_gettop(lua) - stackTop;
+    */
+
+    // We need space to read our returns to
+    int integerReturnOne = -1;
     float floatReturn = -1;
-    char stringReturn[256];
+    std::string stringReturnThree;
+    int integerReturnTwo = -1;
 
-    std::cout << sizeof(stringReturn) << std::endl;
-    EasyLua::Utilities::readStack(lua, &integerReturn, &floatReturn, stringReturn);
+    char *stringReturnOne = (char*)malloc(256);
+    memset(stringReturnOne, 0x00, 256);
+    char stringReturnTwo[256];
+    memset(stringReturnTwo, 0x00, 256);
 
-    std::cout << "Got Int: " << integerReturn << std::endl;
+    // The Lua method we called will return an int, float, string, string, string int
+    // We use pointers for everything as to prevent usage of stack space values internally
+    EasyLua::Utilities::readStack<false>(lua, &integerReturnOne, &floatReturn,
+                                  stringReturnOne, 256,
+                                  stringReturnTwo, 256,
+                                  &stringReturnThree, &integerReturnTwo);
+
+    /**
+        The above code would look like this with straight Lua manipulations:
+
+        int integerReturnOne = luaL_checkinteger(lua, 1);
+        float floatReturn = luaL_checknumber(lua, 2);
+        char *stringReturnOne = luaL_checkstring(lua, 3);
+        char *stringReturnTwo = luaL_checkstring(lua, 4);
+        std::string stringReturnThree = luaL_checkstring(lua, 5);
+        int integerReturnTwo = luaL_checkinteger(lua, 6);
+    */
+
+    // Print out the values
+    std::cout << "Got Int: " << integerReturnOne << std::endl;
     std::cout << "Got Float: " << floatReturn << std::endl;
-    std::cout << "Got String: " << stringReturn << std::endl;
+    std::cout << "Got String: " << stringReturnOne << std::endl;
+    std::cout << "Got String: " << stringReturnTwo << std::endl;
+    std::cout << "Got String: " << stringReturnThree << std::endl;
+    std::cout << "Got Int: " << integerReturnTwo << std::endl;
+
+    // We can also catch an exception if we have type mismatches
+    try
+    {
+        EasyLua::Utilities::readStack<true>(lua, stringReturnOne, 256);
+    }
+    catch (std::runtime_error &e)
+    {
+        std::cout << "Caught Runtime Exception: " << e.what() << std::endl;
+    }
 
     // Deinit
     lua_close(lua);
-    std::cout << "Deinitialized Lua" << std::endl;
+    std::cout << "---- Deinitialized Lua" << std::endl;
+
+    free(stringReturnOne);
 
     return 0;
 }
