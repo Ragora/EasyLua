@@ -30,98 +30,170 @@ namespace EasyLua
     typedef size_t ParameterCount;
     typedef size_t ReturnCount;
 
-    // Table builder
-    template <bool createTable>
-    struct TableCreationResolver { };
-
-    template <>
-    struct TableCreationResolver<true> { static INLINE void resolve(lua_State *lua) { lua_createtable(lua, 0, 0); } };
-
-    template <>
-    struct TableCreationResolver<false> { static INLINE void resolve(lua_State *lua) { } };
-
-    // Type Checker
-    template <bool typeCheck, typename inputType>
-    struct TypeExceptionResolver { };
-
-    static const char *EXCEPTION_FORMAT = "Expected %s (type ID %u) at stack index %u! Got type ID %u instead.";
-
-    template <>
-    struct TypeExceptionResolver<true, int>
+    namespace Resolvers
     {
-        static INLINE void resolve(lua_State *lua, const int &index)
+        // Table builder
+        template <bool createTable>
+        struct TableCreationResolver { };
+
+        template <>
+        struct TableCreationResolver<true> { static INLINE void resolve(lua_State *lua) { lua_createtable(lua, 0, 0); } };
+
+        template <>
+        struct TableCreationResolver<false> { static INLINE void resolve(lua_State *lua) { } };
+
+        // Type Checker
+        template <bool typeCheck, typename inputType>
+        struct TypeExceptionResolver { };
+
+        static const char *EXCEPTION_FORMAT = "Expected %s (type ID %u) at stack index %u! Got type ID %u instead.";
+
+        template <>
+        struct TypeExceptionResolver<true, int>
         {
-            const int type = lua_type(lua, index);
-
-            if (lua_type(lua, index) != LUA_TNUMBER)
+            static INLINE bool resolve(lua_State *lua, const int &index, int *out)
             {
-                char error[256];
-                sprintf(error, EXCEPTION_FORMAT, "integer (number) ", LUA_TNUMBER, index, type);
+                const int type = lua_type(lua, index);
 
-                throw std::runtime_error(error);
+                if (type != LUA_TNUMBER)
+                {
+                    char error[256];
+                    sprintf(error, EXCEPTION_FORMAT, "integer (number) ", LUA_TNUMBER, index, type);
+
+                    throw std::runtime_error(error);
+                }
+
+                *out = lua_tointeger(lua, index);
+                return true;
             }
-        }
-    };
+        };
 
-    template <>
-    struct TypeExceptionResolver<true, float>
+        template <>
+        struct TypeExceptionResolver<true, float>
+        {
+            static INLINE bool resolve(lua_State *lua, const int &index, float *out)
+            {
+                const int type = lua_type(lua, index);
+
+                if (type != LUA_TNUMBER)
+                {
+                    char error[256];
+                    sprintf(error, EXCEPTION_FORMAT, "float (number)", LUA_TNUMBER, index, type);
+
+                    throw std::runtime_error(error);
+                }
+
+                *out = lua_tonumber(lua, index);
+                return true;
+            }
+        };
+
+        template <>
+        struct TypeExceptionResolver<true, char *>
+        {
+            static INLINE bool resolve(lua_State *lua, const int &index, char *out)
+            {
+                const int type = lua_type(lua, index);
+
+                if (type != LUA_TSTRING)
+                {
+                    char error[256];
+                    sprintf(error, EXCEPTION_FORMAT, "string", LUA_TSTRING, index, type);
+
+                    throw std::runtime_error(error);
+                }
+
+                out = const_cast<char *>(lua_tostring(lua, index));
+                return true;
+            }
+        };
+
+        template <>
+        struct TypeExceptionResolver<true, int *>
+        {
+            static INLINE bool resolve(lua_State *lua, const int &index, void *out)
+            {
+                const int type = lua_type(lua, index);
+
+                if (type != LUA_TUSERDATA)
+                {
+                    char error[256];
+                    sprintf(error, EXCEPTION_FORMAT, "user data", LUA_TUSERDATA, index, type);
+
+                    throw std::runtime_error(error);
+                }
+
+                out = const_cast<void *>(lua_touserdata(lua, index));
+                return true;
+            }
+        };
+
+        // No exception
+        template <>
+        struct TypeExceptionResolver<false, char *>
+        {
+            static INLINE bool resolve(lua_State *lua, const int &index, char *out)
+            {
+                const int type = lua_type(lua, index);
+
+                if (type != LUA_TSTRING)
+                    return false;
+
+                out = const_cast<char *>(lua_tostring(lua, index));
+                return true;
+            }
+        };
+
+        template <>
+        struct TypeExceptionResolver<false, float>
+        {
+            static INLINE bool resolve(lua_State *lua, const int &index, float *out)
+            {
+                const int type = lua_type(lua, index);
+
+                if (type != LUA_TNUMBER)
+                    return false;
+
+                *out = lua_tonumber(lua, index);
+                return true;
+            }
+        };
+
+        template <>
+        struct TypeExceptionResolver<false, int *>
+        {
+            static INLINE bool resolve(lua_State *lua, const int &index, void *out)
+            {
+                const int type = lua_type(lua, index);
+
+                if (type != LUA_TUSERDATA)
+                    return false;
+
+                out = lua_touserdata(lua, index);
+                return true;
+            }
+        };
+
+        template <>
+        struct TypeExceptionResolver<false, int>
+        {
+            static INLINE bool resolve(lua_State *lua, const int &index, int *out)
+            {
+                const int type = lua_type(lua, index);
+
+                if (type != LUA_TNUMBER)
+                    return false;
+
+                *out = lua_tointeger(lua, index);
+                return true;
+            }
+        };
+    }
+
+    class HighPerformance
     {
-        static INLINE void resolve(lua_State *lua, const int &index)
-        {
-            const int type = lua_type(lua, index);
 
-            if (lua_type(lua, index) != LUA_TNUMBER)
-            {
-                char error[256];
-                sprintf(error, EXCEPTION_FORMAT, "float (number)", LUA_TNUMBER, index, type);
-
-                throw std::runtime_error(error);
-            }
-        }
     };
-
-    template <>
-    struct TypeExceptionResolver<true, char *>
-    {
-        static INLINE void resolve(lua_State *lua, const int &index)
-        {
-            const int type = lua_type(lua, index);
-
-            if (lua_type(lua, index) != LUA_TSTRING)
-            {
-                char error[256];
-                sprintf(error, EXCEPTION_FORMAT, "string", LUA_TSTRING, index, type);
-
-                throw std::runtime_error(error);
-            }
-        }
-    };
-
-    template <>
-    struct TypeExceptionResolver<true, int *>
-    {
-        static INLINE void resolve(lua_State *lua, const int &index)
-        {
-            const int type = lua_type(lua, index);
-
-            if (lua_type(lua, index) != LUA_TUSERDATA)
-            {
-                char error[256];
-                sprintf(error, EXCEPTION_FORMAT, "user data", LUA_TUSERDATA, index, type);
-
-                throw std::runtime_error(error);
-            }
-        }
-    };
-
-    template <>
-    struct TypeExceptionResolver<false, char *> { static INLINE void resolve(lua_State *lua, const int &index) { } };
-    template <>
-    struct TypeExceptionResolver<false, float> { static INLINE void resolve(lua_State *lua, const int &index) { } };
-    template <>
-    struct TypeExceptionResolver<false, int *> { static INLINE void resolve(lua_State *lua, const int &index) { } };
-    template <>
-    struct TypeExceptionResolver<false, int> { static INLINE void resolve(lua_State *lua, const int &index) { } };
 
     /**
      *  @brief This "namespace" contains a bulk of the EasyLua API that the end programmer
@@ -200,7 +272,7 @@ namespace EasyLua
             template <bool createTable = true, typename... parameters>
             static INLINE void pushTable(lua_State *lua, const char *key, const int &value, parameters... params)
             {
-                EasyLua::TableCreationResolver<createTable>::resolve(lua);
+                EasyLua::Resolvers::TableCreationResolver<createTable>::resolve(lua);
 
                 lua_pushstring(lua, key);
                 lua_pushinteger(lua, value);
@@ -219,7 +291,7 @@ namespace EasyLua
             template <bool createTable = true, typename... parameters>
             static INLINE void pushTable(lua_State *lua, const char *key, const float &value, parameters... params)
             {
-                EasyLua::TableCreationResolver<createTable>::resolve(lua);
+                EasyLua::Resolvers::TableCreationResolver<createTable>::resolve(lua);
 
                 lua_pushstring(lua, key);
                 lua_pushnumber(lua, value);
@@ -239,7 +311,7 @@ namespace EasyLua
             template <bool createTable = true, typename... parameters>
             static INLINE void pushTable(lua_State *lua, const char *key, const double &value, parameters... params)
             {
-                EasyLua::TableCreationResolver<createTable>::resolve(lua);
+                EasyLua::Resolvers::TableCreationResolver<createTable>::resolve(lua);
 
                 lua_pushstring(lua, key);
                 lua_pushnumber(lua, value);
@@ -258,7 +330,7 @@ namespace EasyLua
             template <bool createTable = true, typename... parameters>
             static INLINE void *pushTable(lua_State *lua, const char *key, const bool &value, parameters... params)
             {
-                EasyLua::TableCreationResolver<createTable>::resolve(lua);
+                EasyLua::Resolvers::TableCreationResolver<createTable>::resolve(lua);
 
                 lua_pushstring(lua, key);
                 lua_pushboolean(lua, value);
@@ -277,7 +349,7 @@ namespace EasyLua
             template <bool createTable = true, typename... parameters>
             static INLINE void pushTable(lua_State *lua, const char *key, const char *value, parameters... params)
             {
-                EasyLua::TableCreationResolver<createTable>::resolve(lua);
+                EasyLua::Resolvers::TableCreationResolver<createTable>::resolve(lua);
 
                 lua_pushstring(lua, key);
                 lua_pushstring(lua, value);
@@ -316,7 +388,7 @@ namespace EasyLua
             template <bool createTable = true, unsigned int index = 1, typename... parameters>
             static INLINE void pushArray(lua_State *lua, const int &value, parameters... params)
             {
-                EasyLua::TableCreationResolver<createTable>::resolve(lua);
+                EasyLua::Resolvers::TableCreationResolver<createTable>::resolve(lua);
 
                 lua_pushinteger(lua, index);
                 lua_pushinteger(lua, value);
@@ -328,7 +400,7 @@ namespace EasyLua
             template <bool createTable = true, unsigned int index = 1, typename... parameters>
             static INLINE void pushArray(lua_State *lua, const char *key, const float &value, parameters... params)
             {
-                EasyLua::TableCreationResolver<createTable>::resolve(lua);
+                EasyLua::Resolvers::TableCreationResolver<createTable>::resolve(lua);
 
                 lua_pushinteger(lua, index);
                 lua_pushnumber(lua, value);
@@ -340,7 +412,7 @@ namespace EasyLua
             template <bool createTable = true, unsigned int index = 1, typename... parameters>
             static INLINE void pushArray(lua_State *lua, const char *key, const double &value, parameters... params)
             {
-                EasyLua::TableCreationResolver<createTable>::resolve(lua);
+                EasyLua::Resolvers::TableCreationResolver<createTable>::resolve(lua);
 
                 lua_pushinteger(lua, index);
                 lua_pushnumber(lua, value);
@@ -352,7 +424,7 @@ namespace EasyLua
             template <bool createTable = true, unsigned int index = 1, typename... parameters>
             static INLINE void pushArray(lua_State *lua, const char *key, const bool &value, parameters... params)
             {
-                EasyLua::TableCreationResolver<createTable>::resolve(lua);
+                EasyLua::Resolvers::TableCreationResolver<createTable>::resolve(lua);
 
                 lua_pushinteger(lua, index);
                 lua_pushboolean(lua, value);
@@ -364,7 +436,7 @@ namespace EasyLua
             template <bool createTable = true, unsigned int index = 1, typename... parameters>
             static INLINE void pushArray(lua_State *lua, const char *key, const char *value, parameters... params)
             {
-                EasyLua::TableCreationResolver<createTable>::resolve(lua);
+                EasyLua::Resolvers::TableCreationResolver<createTable>::resolve(lua);
 
                 lua_pushinteger(lua, index);
                 lua_pushstring(lua, value);
@@ -377,36 +449,38 @@ namespace EasyLua
             static INLINE void pushArray(lua_State *lua) { }
 
             template <bool typeException, int index = 1, typename... parameters>
-            static INLINE void readStack(lua_State *lua, float *out, parameters... params)
+            static INLINE int readStack(lua_State *lua, float *out, parameters... params)
             {
-                EasyLua::TypeExceptionResolver<typeException, float>::resolve(lua, index);
+                if (!EasyLua::Resolvers::TypeExceptionResolver<typeException, float>::resolve(lua, index, out))
+                    return index;
 
                 *out = luaL_checknumber(lua, index);
-                EasyLua::Utilities::readStack<typeException, index + 1>(lua, params...);
+                return EasyLua::Utilities::readStack<typeException, index + 1>(lua, params...);
             }
 
             template <bool typeException, int index = 1, typename... parameters>
-            static INLINE void readStack(lua_State *lua, bool *out, parameters... params)
+            static INLINE int readStack(lua_State *lua, bool *out, parameters... params)
             {
-                EasyLua::TypeExceptionResolver<typeException, int>::resolve(lua, index);
+                EasyLua::Resolvers::TypeExceptionResolver<typeException, int>::resolve(lua, index);
 
                 *out = luaL_checkinteger(lua, index);
-                EasyLua::Utilities::readStack<typeException, index + 1>(lua, params...);
+                return EasyLua::Utilities::readStack<typeException, index + 1>(lua, params...);
             }
 
             template <bool typeException, int index = 1, typename... parameters>
-            static INLINE void readStack(lua_State *lua, int *out, parameters... params)
+            static INLINE int readStack(lua_State *lua, int *out, parameters... params)
             {
-                EasyLua::TypeExceptionResolver<typeException, int>::resolve(lua, index);
+                if (!EasyLua::Resolvers::TypeExceptionResolver<typeException, int>::resolve(lua, index, out))
+                    return index;
 
-                 *out = luaL_checkinteger(lua, index);
-                EasyLua::Utilities::readStack<typeException, index + 1>(lua, params...);
+                return EasyLua::Utilities::readStack<typeException, index + 1>(lua, params...);
             }
 
             template <bool typeException, int index = 1, typename... parameters>
-            static INLINE void readStack(lua_State *lua, char *out, const int &outLength, parameters... params)
+            static INLINE int readStack(lua_State *lua, char *out, const int &outLength, parameters... params)
             {
-                EasyLua::TypeExceptionResolver<typeException, char *>::resolve(lua, index);
+                if (!EasyLua::Resolvers::TypeExceptionResolver<typeException, char *>::resolve(lua, index, out))
+                    return index;
 
                 // We want to read a string of max size outLength
                 const char *target = luaL_checkstring(lua, index);
@@ -416,27 +490,29 @@ namespace EasyLua
                 targetLength = outLength > targetLength ? targetLength : targetLength - outLength;
                 memcpy(out, target, targetLength);
 
-                EasyLua::Utilities::readStack<typeException, index + 1>(lua, params...);
+                return EasyLua::Utilities::readStack<typeException, index + 1>(lua, params...);
             }
 
             template <bool typeException, int index = 1, typename... parameters>
-            static INLINE void readStack(lua_State *lua, std::string *out, parameters... params)
+            static INLINE int readStack(lua_State *lua, std::string *out, parameters... params)
             {
-                EasyLua::TypeExceptionResolver<typeException, char *>::resolve(lua, index);
+                char *outTest = 0x00;
+
+                if (!EasyLua::Resolvers::TypeExceptionResolver<typeException, char *>::resolve(lua, index, outTest))
+                    return index;
 
                 out->assign(luaL_checkstring(lua, index));
 
-                EasyLua::Utilities::readStack<typeException, index + 1>(lua, params...);
+                return EasyLua::Utilities::readStack<typeException, index + 1>(lua, params...);
             }
 
-
             template <bool typeException, int index = 1, typename... parameters>
-            static INLINE void readStack(lua_State *lua, void *out, parameters... params)
+            static INLINE int readStack(lua_State *lua, void *out, parameters... params)
             {
-                EasyLua::TypeExceptionResolver<typeException, int *>::resolve(lua, index);
+                EasyLua::Resolvers::TypeExceptionResolver<typeException, int *>::resolve(lua, index);
 
                 out = lua_touserdata(lua, index);
-                EasyLua::Utilities::readStack<typeException, index + 1>(lua, params...);
+                return EasyLua::Utilities::readStack<typeException, index + 1>(lua, params...);
             }
 
         // Private Methods
@@ -480,7 +556,7 @@ namespace EasyLua
             template <bool createTable = true, typename... parameters>
             static INLINE void pushTable(lua_State *lua, const char *key, const void *value, parameters... params)
             {
-                EasyLua::TableCreationResolver<createTable>::resolve(lua);
+                EasyLua::Resolvers::TableCreationResolver<createTable>::resolve(lua);
 
                 EasyLua::Utilities::pushTable<false>(lua, params...);
 
@@ -493,7 +569,7 @@ namespace EasyLua
             }
 
             template <bool typeException, int index = -1>
-            static INLINE void readStack(lua_State *lua) { }
+            static INLINE int readStack(lua_State *lua) { return -1; }
     }; // End Class Utilities
 
     /**

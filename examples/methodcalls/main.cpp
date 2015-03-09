@@ -21,7 +21,7 @@ int main(int argc, char *argv[])
     const unsigned int returnCount = EasyLua::call(lua, "easyLuaMultiParamMultiReturnTest", 1, "Two", 3.14f);
     std::cout << "Return Count: " << returnCount << std::endl;
 
-    /**
+    /*
         The above code would look like this with straight Lua manipulations:
 
         const int stackTop = lua_gettop(lua);
@@ -52,15 +52,15 @@ int main(int argc, char *argv[])
                                   stringReturnTwo, 256,
                                   &stringReturnThree, &integerReturnTwo);
 
-    /**
+    /*
         The above code would look like this with straight Lua manipulations:
 
-        int integerReturnOne = luaL_checkinteger(lua, 1);
-        float floatReturn = luaL_checknumber(lua, 2);
-        char *stringReturnOne = luaL_checkstring(lua, 3);
-        char *stringReturnTwo = luaL_checkstring(lua, 4);
-        std::string stringReturnThree = luaL_checkstring(lua, 5);
-        int integerReturnTwo = luaL_checkinteger(lua, 6);
+        const int integerReturnOne = luaL_checkinteger(lua, 1);
+        const float floatReturn = luaL_checknumber(lua, 2);
+        const char *stringReturnOne = luaL_checkstring(lua, 3);
+        const char *stringReturnTwo = luaL_checkstring(lua, 4);
+        const std::string stringReturnThree = luaL_checkstring(lua, 5);
+        const int integerReturnTwo = luaL_checkinteger(lua, 6);
     */
 
     // Print out the values
@@ -70,6 +70,11 @@ int main(int argc, char *argv[])
     std::cout << "Got String: " << stringReturnTwo << std::endl;
     std::cout << "Got String: " << stringReturnThree << std::endl;
     std::cout << "Got Int: " << integerReturnTwo << std::endl;
+
+    // If any of the types are wrong, readStack will return the index of the first occurrence
+    const int stackError = EasyLua::Utilities::readStack<false>(lua, &integerReturnOne, stringReturnOne, 256);
+
+    std::cout << "Stack Error Index: " << stackError << std::endl;
 
     // We can also catch an exception if we have type mismatches
     try
