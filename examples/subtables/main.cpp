@@ -17,14 +17,21 @@ int main(int argc, char *argv[])
 
     std::cout << "Initialized Lua " << std::endl;
 
-    lua_getglobal(lua, "easyLuaSingleParamSingleReturn");
-
-    // Pushes a table: {One = 2, Three = 4, Five = { Six = 7, Eight = { Nine = 10 }}}
-    EasyLua::Utilities::pushTable(lua, "One", 2,
-                                  "Three", 4,
-                                  "Five", EasyLua::Utilities::Table(lua, "Six", 7,
-                                  "Eight", EasyLua::Utilities::Table(lua, "Nine", 10)));
-    lua_call(lua, 1, 1);
+    /*
+        The call below performs the following Lua call:
+        tableOne = { Test = 3 }
+        tableTwo = { Six = 7, Eight = { Nine = 10 }}
+        tableThree = { Ten = 11 }
+        tableFour = { Thirteen = 14 }
+        easyLuaMultiTables(tableOne, "One", 2, "Three", 4.12, "Five", tableTwo, tableThree, 12, tableFour)
+    */
+    EasyLua::call(lua, "easyLuaMultiTables",
+                                  EasyLua::Utilities::Table(lua, "Test", 3),
+                                  "One", 2, "Three", 4.12f, "Five",
+                                  EasyLua::Utilities::Table(lua, "Six", 7, "Eight", EasyLua::Utilities::Table(lua, "Nine", 10)),
+                                  EasyLua::Utilities::Table(lua, "Ten", 11),
+                                  12,
+                                  EasyLua::Utilities::Table(lua, "Thirteen", 14));
 
     // Deinit
     lua_close(lua);

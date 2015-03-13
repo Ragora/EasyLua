@@ -1,4 +1,8 @@
 /**
+ *  @file main.cpp
+ *  @brief Example coding showing the different Lua method calling
+ *  features.
+ *
  */
 
 #include <iostream>

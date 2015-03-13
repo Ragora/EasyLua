@@ -21,3 +21,4 @@ ENDIF (CMAKE_COMPILER_IS_GNUCC AND CMAKE_COMPILER_IS_GNUCXX)
 
 ADD_SUBDIRECTORY("examples/methodcalls")
 ADD_SUBDIRECTORY("examples/subtables")
+ADD_SUBDIRECTORY("examples/hltables")
