@@ -1,8 +1,9 @@
 /**
  *  @file main.cpp
- *  @brief Example coding showing the different Lua method calling
- *  features.
- *
+ *  @brief Example coding showing the usage of the high level
+ *  tables interface.
+ *  @copyright This software is licensed under the MIT license. Refer to LICENSE.txt
+ *  at the root of any source distribution for more information.
  */
 
 #include <iostream>

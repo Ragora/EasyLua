@@ -2,13 +2,22 @@
  *  @file main.cpp
  *  @brief Example coding showing the different Lua method calling
  *  features.
- *
+ *  @copyright This software is licensed under the MIT license. Refer to LICENSE.txt
+ *  at the root of any source distribution for more information.
  */
 
 #include <iostream>
 
 #include <easylua.hpp>
 
+/**
+ *  @brief Standard entry point for an application.
+ *  @param argc The number of command line parameters passed
+ *  to the application.
+ *  @param argv An array of char* representing each command line
+ *  parameter passed to the application delineated by spaces.
+ *  @return An integer representing the exit status.
+ */
 int main(int argc, char *argv[])
 {
     // Init Lua

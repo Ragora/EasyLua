@@ -2,9 +2,9 @@
  *  @file easylua.hpp
  *  @author Robert MacGregor
  *  @brief The main include file for the EasyLua library.
- *  @date Monday, March 2nd, 2015
- *  @copyright This software is licensed under the MIT license. Please refer
- *  to LICENSE.txt for more information.
+ *  @date Sunday, March 15th, 2015
+ *  @copyright This software is licensed under the MIT license. Refer to LICENSE.txt
+ *  at the root of any source distribution for more information.
  */
 
 #include <stdexcept>
@@ -32,46 +32,89 @@ namespace EasyLua
     typedef size_t ParameterCount;
     typedef size_t ReturnCount;
 
+    //! Enumeration representing the supported types in the EasyLua library.
     enum EASYLUA_TYPE
     {
+        //! Anything that is an integer.
         EASYLUA_INTEGER = 0,
+        //! String types.
         EASYLUA_STRING = 1,
+        //! Table types.
         EASYLUA_TABLE = 2,
+        //! Float types.
         EASYLUA_FLOAT = 3,
     };
 
     class Table;
 
+    /**
+     *  @brief Namespace that contains all of the compile-time resolving code for EasyLua.
+     *  The end programmer will not have to interface with anything here directly.
+     */
     namespace Resolvers
     {
-        // TypeID Resolvers
+        /**
+         *  @brief The TypeIDResolver template struct is used to resolve EasyLua types to
+         *  their internal EasyLua type identification numbers for use in the high level
+         *  Table class.
+         */
         template <typename type>
         struct TypeIDResolver { };
 
+        /**
+         *  @brief The TypeIDResolver template struct is used to resolve EasyLua types to
+         *  their internal EasyLua type identification numbers for use in the high level
+         *  Table class.
+         *  @note This resolver worries about the int type specifically.
+         */
         template <>
         struct TypeIDResolver<int>
         {
             static const unsigned char value = EasyLua::EASYLUA_INTEGER;
         };
 
+        /**
+         *  @brief The TypeIDResolver template struct is used to resolve EasyLua types to
+         *  their internal EasyLua type identification numbers for use in the high level
+         *  Table class.
+         *  @note This resolver worries about the float type specifically.
+         */
         template <>
         struct TypeIDResolver<float>
         {
             static const unsigned char value = EasyLua::EASYLUA_FLOAT;
         };
 
+        /**
+         *  @brief The TypeIDResolver template struct is used to resolve EasyLua types to
+         *  their internal EasyLua type identification numbers for use in the high level
+         *  Table class.
+         *  @note This resolver worries about the char type specifically.
+         */
         template <>
         struct TypeIDResolver<char>
         {
             static const unsigned char value = EasyLua::EASYLUA_STRING;
         };
 
+        /**
+         *  @brief The TypeIDResolver template struct is used to resolve EasyLua types to
+         *  their internal EasyLua type identification numbers for use in the high level
+         *  Table class.
+         *  @note This resolver worries about the Table type specifically.
+         */
         template <>
         struct TypeIDResolver<Table>
         {
             static const unsigned char value = EasyLua::EASYLUA_TABLE;
         };
 
+        /**
+         *  @brief The TypeIDResolver template struct is used to resolve EasyLua types to
+         *  their internal EasyLua type identification numbers for use in the high level
+         *  Table class.
+         *  @note This resolver worries about the size_t type specifically.
+         */
         template <>
         struct TypeIDResolver<size_t>
         {
@@ -313,7 +356,7 @@ namespace EasyLua
                 mIntegers = other.mIntegers;
                 mContents = other.mContents;
                 mTypes = other.mTypes;
-                mTables = other.mTables;
+              //  mTables = other.mTables;
             }
 
             template <typename outType>
