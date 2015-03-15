@@ -1,0 +1,31 @@
+# General Binary Stuff
+*.exe
+*.lib
+*.bin
+*.so
+*.a
+*.obj
+*.pdb
+*.asdf
+
+# Code::Blocks
+*.cbp
+*.layout
+
+# CMake output
+*.cmake
+*.make
+*.rsp
+*.internal
+*.includecache
+*CMakeFiles*
+*CMakeCache.txt*
+*Makefile*
+
+examples/bin
+
+# Doxygen output
+doc/
+
+# Temp files
+*~
