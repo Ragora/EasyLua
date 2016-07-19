@@ -632,7 +632,7 @@ namespace EasyLua
              *  stack.
              *  @example subtables/main.cpp
              */
-            template <typename... parameters>
+            template <int depth, typename... parameters>
             static INLINE void *Table(lua_State *lua, parameters... params)
             {
                 const size_t currentTop = lua_gettop(lua);
@@ -640,9 +640,9 @@ namespace EasyLua
                 EasyLua::Utilities::pushTable<true>(lua, params...);
 
                 // TODO (Robert MacGregor#9): Statically resolve the necessity of this, it's only necessary for pushParameters
-                lua_insert(lua, 1); // Puts pushed tables in the right order for pushParameters
+                lua_insert(lua, depth); // Puts pushed tables in the right order for pushParameters
 
-                return NULL;
+                return nullptr;
             }
 
             // Array Pusher

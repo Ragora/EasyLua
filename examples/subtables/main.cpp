@@ -26,12 +26,12 @@ int main(int argc, char *argv[])
         easyLuaMultiTables(tableOne, "One", 2, "Three", 4.12, "Five", tableTwo, tableThree, 12, tableFour)
     */
     EasyLua::call(lua, "easyLuaMultiTables",
-                                  EasyLua::Utilities::Table(lua, "Test", 3),
+                                  EasyLua::Utilities::Table<1>(lua, "Test", 3),
                                   "One", 2, "Three", 4.12f, "Five",
-                                  EasyLua::Utilities::Table(lua, "Six", 7, "Eight", EasyLua::Utilities::Table(lua, "Nine", 10)),
-                                  EasyLua::Utilities::Table(lua, "Ten", 11),
+                                  EasyLua::Utilities::Table<1>(lua, "Six", 7, "Eight", EasyLua::Utilities::Table<0>(lua, "Nine", 10, "Another", EasyLua::Utilities::Table<-1>(lua, "Table", 50))),
+                                  EasyLua::Utilities::Table<1>(lua, "Ten", 11),
                                   12,
-                                  EasyLua::Utilities::Table(lua, "Thirteen", 14));
+                                  EasyLua::Utilities::Table<1>(lua, "Thirteen", 14));
 
     // Deinit
     lua_close(lua);
