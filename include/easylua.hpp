@@ -10,8 +10,10 @@
 #include <stdexcept>
 #include <tuple>
 #include <cstdlib>
+#include <string>
 #include <cstring>
 #include <unordered_map>
+#include <type_traits>
 
 #include <lua.hpp>
 
@@ -70,7 +72,7 @@ namespace EasyLua
         template <>
         struct TypeIDResolver<int>
         {
-            static const unsigned char value = EasyLua::EASYLUA_INTEGER;
+            static constexpr unsigned char value = EasyLua::EASYLUA_INTEGER;
         };
 
         /**
@@ -82,7 +84,7 @@ namespace EasyLua
         template <>
         struct TypeIDResolver<float>
         {
-            static const unsigned char value = EasyLua::EASYLUA_FLOAT;
+            static constexpr unsigned char value = EasyLua::EASYLUA_FLOAT;
         };
 
         /**
@@ -92,9 +94,9 @@ namespace EasyLua
          *  @note This resolver worries about the char type specifically.
          */
         template <>
-        struct TypeIDResolver<char>
+        struct TypeIDResolver<std::string>
         {
-            static const unsigned char value = EasyLua::EASYLUA_STRING;
+            static constexpr unsigned char value = EasyLua::EASYLUA_STRING;
         };
 
         /**
@@ -106,7 +108,7 @@ namespace EasyLua
         template <>
         struct TypeIDResolver<Table>
         {
-            static const unsigned char value = EasyLua::EASYLUA_TABLE;
+            static constexpr unsigned char value = EasyLua::EASYLUA_TABLE;
         };
 
         /**
@@ -118,7 +120,7 @@ namespace EasyLua
         template <>
         struct TypeIDResolver<size_t>
         {
-            static const unsigned char value = EasyLua::EASYLUA_INTEGER;
+            static constexpr unsigned char value = EasyLua::EASYLUA_INTEGER;
         };
 
         // Table builder
@@ -287,127 +289,110 @@ namespace EasyLua
      *  and memory requirements. So be sure to see if the more lightweight EasyLua::Utilities::Table
      *  is applicable.
      */
-    class ParentTable
+    class Table
     {
+        // Private Members
+        private:
+            //! An unordered mapping of keys to stored tables.
+            std::unordered_map<std::string, Table*> mTables;
+
+            //! An unordered mapping of keys to arbitrary stored data.
+            std::unordered_map<std::string, void*> mContents;
+
+            //! An unordering mapping of keys to type data.
+            std::unordered_map<std::string, std::pair<std::string, unsigned char>> mTypes;
+
+        // Public Methods
         public:
-            void set(const char *key, const int &value)
+            //! Standard destructor.
+            ~Table(void)
             {
-                static std::hash<const char *> hasher;
+                // We retain type information here to ensure that the destruction works correctly
+                for (auto it = mTypes.begin(); it != mTypes.end(); it++)
+                {
+                    const std::string name = (*it).first;
+                    auto current = (*it).second;
 
-                const size_t hash = hasher(key);
+                    switch (current.second)
+                    {
+                        case EasyLua::EASYLUA_FLOAT:
+                        {
+                            delete reinterpret_cast<float*>(mContents[name]);
+                            break;
+                        }
 
-                mIntegers[hash] = value;
-                mContents[hash] = &(mIntegers[hash]);
-                mTypes[hash] = std::make_pair(key, EasyLua::EASYLUA_INTEGER);
+                        case EasyLua::EASYLUA_STRING:
+                        {
+                            delete reinterpret_cast<std::string*>(mContents[name]);
+                            break;
+                        }
+
+                        case EasyLua::EASYLUA_INTEGER:
+                        {
+                            delete reinterpret_cast<int*>(mContents[name]);
+                            break;
+                        }
+
+                        case EasyLua::EASYLUA_TABLE:
+                        {
+                            // FIXME: Memory issues here
+                            break;
+                        }
+                    }
+                }
             }
 
-            void set(const char *key, const float &value)
+            void copy(const Table& other)
             {
-                static std::hash<const char *> hasher;
-
-                const size_t hash = hasher(key);
-
-                mFloats[hash] = value;
-                mContents[hash] = &(mFloats[hash]);
-                mTypes[hash] = std::make_pair(key, EasyLua::EASYLUA_FLOAT);
-            }
-
-            void set(const char *key, const char *value)
-            {
-                static std::hash<const char *> hasher;
-
-                const size_t hash = hasher(key);
-
-                mStrings[hash] = value;
-                mContents[hash] = &(mStrings[hash]);
-                mTypes[hash] = std::make_pair(key, EasyLua::EASYLUA_STRING);
-            }
-
-          //  void get(const char *key, Table *out)
-           // {
-
-           // }
-
-            //virtual void push(lua_State *lua) = 0;
-
-            //void remove(const char *key)
-           // {
-
-           // }
-
-        public:
-            std::unordered_map<size_t, float> mFloats;
-            std::unordered_map<size_t, int> mIntegers;
-            std::unordered_map<size_t, std::string> mStrings;
-
-            std::unordered_map<size_t, void *> mContents;
-
-          //  std::unordered_map<size_t, std::pair<const char *, const void *>> mContents;
-            std::unordered_map<size_t, std::pair<const char *, unsigned char>> mTypes;
-    };
-
-    class Table : public ParentTable
-    {
-        public:
-            void copy(const ParentTable &other)
-            {
-                mFloats = other.mFloats;
-                mStrings = other.mStrings;
-                mIntegers = other.mIntegers;
                 mContents = other.mContents;
                 mTypes = other.mTypes;
-              //  mTables = other.mTables;
             }
 
             template <typename outType>
-            void get(const char *key, outType &out)
+            void get(const std::string& key, outType& out)
             {
-                static std::hash<const char *> hasher;
-
-                const size_t hash = hasher(key);
-
-                if (mTypes.count(hash) == 0)
+                if (mTypes.count(key) == 0)
                     throw std::runtime_error("No such key!");
-                else if (mTypes[hash].second != EasyLua::Resolvers::TypeIDResolver<outType>::value)
+                else if (mTypes[key].second != EasyLua::Resolvers::TypeIDResolver<outType>::value)
                     throw std::runtime_error("Mismatched types!");
 
-                out = *((outType*)(mContents[hash]));
+                out = *((outType*)(mContents[key]));
             }
 
             void push(lua_State *lua)
             {
                 lua_createtable(lua, 0, 0);
 
-                for (std::unordered_map<size_t, std::pair<const char *, unsigned char>>::iterator it = mTypes.begin(); it != mTypes.end(); it++)
+                for (auto it = mTypes.begin(); it != mTypes.end(); it++)
                 {
-                    const size_t hash = (*it).first;
-                    std::pair<const char *, unsigned char> current = (*it).second;
+                    const std::string name = (*it).first;
+                    auto current = (*it).second;
 
-                    lua_pushstring(lua, current.first);
+                    lua_pushstring(lua, current.first.data());
 
                     switch (current.second)
                     {
                         case EasyLua::EASYLUA_FLOAT:
                         {
-                            lua_pushnumber(lua, mFloats[hash]);
+                            lua_pushnumber(lua, *reinterpret_cast<float*>(mContents[name]));
                             break;
                         }
 
                         case EasyLua::EASYLUA_STRING:
                         {
-                            lua_pushstring(lua, mStrings[hash].c_str());
+                            lua_pushstring(lua, reinterpret_cast<std::string*>(mContents[name])->data());
                             break;
                         }
 
                         case EasyLua::EASYLUA_INTEGER:
                         {
-                            lua_pushinteger(lua, mIntegers[hash]);
+                            lua_pushinteger(lua, *reinterpret_cast<int*>(mContents[name]));
                             break;
                         }
 
                         case EasyLua::EASYLUA_TABLE:
                         {
-                            reinterpret_cast<Table *>(&mTables[hash])->push(lua);
+                            mTables[name]->push(lua);
                             break;
                         }
                     }
@@ -416,32 +401,43 @@ namespace EasyLua
                 }
             }
 
-            void setTable(const char *key, const ParentTable &value)
+            template <typename storedType>
+            void set(std::string key, storedType value)
             {
-                static std::hash<const char *> hasher;
+                storedType* memory = new storedType(value);
 
-                const size_t hash = hasher(key);
+                mContents[key] = memory;
 
-                mTables[hash] = value;
-                mTypes[hash] = std::make_pair(key, EasyLua::EASYLUA_TABLE);
+                constexpr unsigned char type = Resolvers::TypeIDResolver<storedType>::value;
+                mTypes[key] = std::make_pair(key, type);
             }
 
-        private:
-            std::unordered_map<size_t, ParentTable> mTables;
+            void setTable(const std::string& key, Table &value)
+            {
+                mTables[key] = &value;
+                mTypes[key] = std::make_pair(key, EasyLua::EASYLUA_TABLE);
+            }
     };
 
+    template <>
+    void Table::set(std::string key, char* value)
+    {
+        this->set(key, std::string(value));
+    }
 
     template <>
-    void Table::get(const char *key, Table &out)
+    void Table::set(std::string key, const char* value)
     {
-        static std::hash<const char *> hasher;
+        this->set(key, std::string(value));
+    }
 
-        const size_t hash = hasher(key);
-
-        if (mTypes.count(hash) == 0)
+    template <>
+    void Table::get(const std::string& key, Table &out)
+    {
+        if (mTypes.count(key) == 0)
             throw std::runtime_error("No such key!");
 
-        out.copy(mTables[hash]);
+       // out.copy(mTables[key]);
     }
 
 
@@ -460,7 +456,6 @@ namespace EasyLua
     {
         // Public Methods
         public:
-
             /**
              *  @brief This is one among a family of methods that push arbitrary values to the
              *  Lua stack.
@@ -629,7 +624,7 @@ namespace EasyLua
 
             /**
              *  @brief A helper method that can be used to push subtables to the Lua
-             *  stack.
+             *  stack when using the high performance interface.
              *  @example subtables/main.cpp
              */
             template <int depth, typename... parameters>
