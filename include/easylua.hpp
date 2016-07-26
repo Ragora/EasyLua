@@ -142,7 +142,7 @@ namespace EasyLua
         template <>
         struct StackReadResolver<true, int>
         {
-            static INLINE bool resolve(lua_State *lua, const int &index, int *out)
+            static INLINE bool resolve(lua_State* lua, const int& index, int* out)
             {
                 const int type = lua_type(lua, index);
 
@@ -162,7 +162,7 @@ namespace EasyLua
         template <>
         struct StackReadResolver<true, float>
         {
-            static INLINE bool resolve(lua_State *lua, const int &index, float *out)
+            static INLINE bool resolve(lua_State* lua, const int& index, float* out)
             {
                 const int type = lua_type(lua, index);
 
@@ -180,9 +180,9 @@ namespace EasyLua
         };
 
         template <>
-        struct StackReadResolver<true, char *>
+        struct StackReadResolver<true, char*>
         {
-            static INLINE bool resolve(lua_State *lua, const int &index, char *out)
+            static INLINE bool resolve(lua_State *lua, const int& index, char* out)
             {
                 const int type = lua_type(lua, index);
 
@@ -194,15 +194,15 @@ namespace EasyLua
                     throw std::runtime_error(error);
                 }
 
-                out = const_cast<char *>(lua_tostring(lua, index));
+                out = const_cast<char*>(lua_tostring(lua, index));
                 return true;
             }
         };
 
         template <>
-        struct StackReadResolver<true, int *>
+        struct StackReadResolver<true, int*>
         {
-            static INLINE bool resolve(lua_State *lua, const int &index, void *out)
+            static INLINE bool resolve(lua_State *lua, const int& index, void* out)
             {
                 const int type = lua_type(lua, index);
 
@@ -214,16 +214,16 @@ namespace EasyLua
                     throw std::runtime_error(error);
                 }
 
-                out = const_cast<void *>(lua_touserdata(lua, index));
+                out = const_cast<void*>(lua_touserdata(lua, index));
                 return true;
             }
         };
 
         // No exception
         template <>
-        struct StackReadResolver<false, char *>
+        struct StackReadResolver<false, char*>
         {
-            static INLINE bool resolve(lua_State *lua, const int &index, char *out)
+            static INLINE bool resolve(lua_State* lua, const int& index, char* out)
             {
                 const int type = lua_type(lua, index);
 
@@ -238,7 +238,7 @@ namespace EasyLua
         template <>
         struct StackReadResolver<false, float>
         {
-            static INLINE bool resolve(lua_State *lua, const int &index, float *out)
+            static INLINE bool resolve(lua_State* lua, const int& index, float* out)
             {
                 const int type = lua_type(lua, index);
 
@@ -251,9 +251,9 @@ namespace EasyLua
         };
 
         template <>
-        struct StackReadResolver<false, int *>
+        struct StackReadResolver<false, int*>
         {
-            static INLINE bool resolve(lua_State *lua, const int &index, void *out)
+            static INLINE bool resolve(lua_State* lua, const int& index, void* out)
             {
                 const int type = lua_type(lua, index);
 
@@ -268,7 +268,7 @@ namespace EasyLua
         template <>
         struct StackReadResolver<false, int>
         {
-            static INLINE bool resolve(lua_State *lua, const int &index, int *out)
+            static INLINE bool resolve(lua_State* lua, const int& index, int* out)
             {
                 const int type = lua_type(lua, index);
 
@@ -359,7 +359,7 @@ namespace EasyLua
                 out = *((outType*)(mContents[key]));
             }
 
-            void push(lua_State *lua)
+            void push(lua_State* lua)
             {
                 lua_createtable(lua, 0, 0);
 
@@ -412,7 +412,7 @@ namespace EasyLua
                 mTypes[key] = std::make_pair(key, type);
             }
 
-            void setTable(const std::string& key, Table &value)
+            void setTable(const std::string& key, Table& value)
             {
                 mTables[key] = &value;
                 mTypes[key] = std::make_pair(key, EasyLua::EASYLUA_TABLE);
@@ -432,7 +432,7 @@ namespace EasyLua
     }
 
     template <>
-    void Table::get(const std::string& key, Table &out)
+    void Table::get(const std::string& key, Table& out)
     {
         if (mTypes.count(key) == 0)
             throw std::runtime_error("No such key!");
@@ -464,7 +464,7 @@ namespace EasyLua
              *  @param params The rest of the parameters to be pushing to the Lua stack.
              */
             template <typename... parameters>
-            static INLINE void pushParameters(lua_State *lua, const int &in, parameters... params)
+            static INLINE void pushParameters(lua_State* lua, const int& in, parameters... params)
             {
                 lua_pushinteger(lua, in);
                 EasyLua::Utilities::pushParameters(lua, params...);
@@ -478,7 +478,7 @@ namespace EasyLua
              *  @param params The rest of the parameters to be pushing to the Lua stack.
              */
             template <typename... parameters>
-            static INLINE void pushParameters(lua_State *lua, const float &in, parameters... params)
+            static INLINE void pushParameters(lua_State* lua, const float& in, parameters... params)
             {
                 lua_pushnumber(lua, in);
                 EasyLua::Utilities::pushParameters(lua, params...);
@@ -492,7 +492,7 @@ namespace EasyLua
              *  @param params The rest of the parameters to be pushing to the Lua stack.
              */
             template <typename... parameters>
-            static INLINE void pushParameters(lua_State *lua, const char *in, parameters... params)
+            static INLINE void pushParameters(lua_State* lua, const char* in, parameters... params)
             {
                 lua_pushstring(lua, in);
                 EasyLua::Utilities::pushParameters(lua, params...);
@@ -506,9 +506,23 @@ namespace EasyLua
              *  @param params The rest of the parameters to be pushing to the Lua stack.
              */
             template <typename... parameters>
-            static INLINE void pushParameters(lua_State *lua, const bool &in, parameters... params)
+            static INLINE void pushParameters(lua_State* lua, const bool& in, parameters... params)
             {
                 lua_pushboolean(lua, in);
+                EasyLua::Utilities::pushParameters(lua, params...);
+            }
+
+            template <typename... parameters>
+            static INLINE void pushParameters(lua_State* lua, Table& in, parameters... params)
+            {
+                in.push(lua);
+                EasyLua::Utilities::pushParameters(lua, params...);
+            }
+
+            template <typename... parameters>
+            static INLINE void pushParameters(lua_State* lua, Table* in, parameters... params)
+            {
+                in->push(lua);
                 EasyLua::Utilities::pushParameters(lua, params...);
             }
 
@@ -520,7 +534,7 @@ namespace EasyLua
              *  @param lua A pointer to the lua_State to use for this operation.
              */
             template <bool createTable = true, typename... parameters>
-            static INLINE void pushTable(lua_State *lua, const char *key, const int &value, parameters... params)
+            static INLINE void pushTable(lua_State* lua, const char* key, const int& value, parameters... params)
             {
                 EasyLua::Resolvers::TableCreationResolver<createTable>::resolve(lua);
 
@@ -539,7 +553,7 @@ namespace EasyLua
              *  @param lua A pointer to the lua_State to use for this operation.
              */
             template <bool createTable = true, typename... parameters>
-            static INLINE void pushTable(lua_State *lua, const char *key, const float &value, parameters... params)
+            static INLINE void pushTable(lua_State* lua, const char* key, const float& value, parameters... params)
             {
                 EasyLua::Resolvers::TableCreationResolver<createTable>::resolve(lua);
 
@@ -559,7 +573,7 @@ namespace EasyLua
              *  @note The double is probably downcasted to a float for this operation.
              */
             template <bool createTable = true, typename... parameters>
-            static INLINE void pushTable(lua_State *lua, const char *key, const double &value, parameters... params)
+            static INLINE void pushTable(lua_State* lua, const char* key, const double& value, parameters... params)
             {
                 EasyLua::Resolvers::TableCreationResolver<createTable>::resolve(lua);
 
@@ -578,7 +592,7 @@ namespace EasyLua
              *  @param lua A pointer to the lua_State to use for this operation.
              */
             template <bool createTable = true, typename... parameters>
-            static INLINE void *pushTable(lua_State *lua, const char *key, const bool &value, parameters... params)
+            static INLINE void *pushTable(lua_State* lua, const char* key, const bool& value, parameters... params)
             {
                 EasyLua::Resolvers::TableCreationResolver<createTable>::resolve(lua);
 
@@ -597,7 +611,7 @@ namespace EasyLua
              *  @param lua A pointer to the lua_State to use for this operation.
              */
             template <bool createTable = true, typename... parameters>
-            static INLINE void pushTable(lua_State *lua, const char *key, const char *value, parameters... params)
+            static INLINE void pushTable(lua_State* lua, const char* key, const char* value, parameters... params)
             {
                 EasyLua::Resolvers::TableCreationResolver<createTable>::resolve(lua);
 
@@ -617,7 +631,7 @@ namespace EasyLua
              *  @note This simply calls EasyLua::Utilities::pushTable<false>(lua, params...)
              */
             template <typename... parameters>
-            static INLINE void pushTableComponents(lua_State *lua, parameters... params)
+            static INLINE void pushTableComponents(lua_State* lua, parameters... params)
             {
                 EasyLua::Utilities::pushTable<false>(lua, params...);
             }
@@ -628,7 +642,7 @@ namespace EasyLua
              *  @example subtables/main.cpp
              */
             template <int depth, typename... parameters>
-            static INLINE void *Table(lua_State *lua, parameters... params)
+            static INLINE void *Table(lua_State* lua, parameters... params)
             {
                 const size_t currentTop = lua_gettop(lua);
 
@@ -642,7 +656,7 @@ namespace EasyLua
 
             // Array Pusher
             template <bool createTable = true, unsigned int index = 1, typename... parameters>
-            static INLINE void pushArray(lua_State *lua, const int &value, parameters... params)
+            static INLINE void pushArray(lua_State* lua, const int& value, parameters... params)
             {
                 EasyLua::Resolvers::TableCreationResolver<createTable>::resolve(lua);
 
@@ -654,7 +668,7 @@ namespace EasyLua
             }
 
             template <bool createTable = true, unsigned int index = 1, typename... parameters>
-            static INLINE void pushArray(lua_State *lua, const char *key, const float &value, parameters... params)
+            static INLINE void pushArray(lua_State* lua, const char* key, const float& value, parameters... params)
             {
                 EasyLua::Resolvers::TableCreationResolver<createTable>::resolve(lua);
 
@@ -666,7 +680,7 @@ namespace EasyLua
             }
 
             template <bool createTable = true, unsigned int index = 1, typename... parameters>
-            static INLINE void pushArray(lua_State *lua, const char *key, const double &value, parameters... params)
+            static INLINE void pushArray(lua_State* lua, const char* key, const double& value, parameters... params)
             {
                 EasyLua::Resolvers::TableCreationResolver<createTable>::resolve(lua);
 
@@ -678,7 +692,7 @@ namespace EasyLua
             }
 
             template <bool createTable = true, unsigned int index = 1, typename... parameters>
-            static INLINE void pushArray(lua_State *lua, const char *key, const bool &value, parameters... params)
+            static INLINE void pushArray(lua_State *lua, const char* key, const bool& value, parameters... params)
             {
                 EasyLua::Resolvers::TableCreationResolver<createTable>::resolve(lua);
 
@@ -690,7 +704,7 @@ namespace EasyLua
             }
 
             template <bool createTable = true, unsigned int index = 1, typename... parameters>
-            static INLINE void pushArray(lua_State *lua, const char *key, const char *value, parameters... params)
+            static INLINE void pushArray(lua_State* lua, const char* key, const char* value, parameters... params)
             {
                 EasyLua::Resolvers::TableCreationResolver<createTable>::resolve(lua);
 
@@ -702,11 +716,14 @@ namespace EasyLua
             }
 
             template <bool createTable = true, unsigned int index = 1>
-            static INLINE void pushArray(lua_State *lua) { }
+            static INLINE void pushArray(lua_State* lua) { }
 
             template <bool typeException, int index = 1, typename... parameters>
-            static INLINE int readStack(lua_State *lua, float *out, parameters... params)
+            static INLINE int readStack(lua_State* lua, float* out, parameters... params)
             {
+                if (sizeof...(parameters) > lua_gettop(lua))
+                    throw std::runtime_error("Not enough values to read (reading float)!");
+
                 if (!EasyLua::Resolvers::StackReadResolver<typeException, float>::resolve(lua, index, out))
                     return index;
 
@@ -715,8 +732,11 @@ namespace EasyLua
             }
 
             template <bool typeException, int index = 1, typename... parameters>
-            static INLINE int readStack(lua_State *lua, bool *out, parameters... params)
+            static INLINE int readStack(lua_State* lua, bool* out, parameters... params)
             {
+                if (sizeof...(parameters) > lua_gettop(lua))
+                    throw std::runtime_error("Not enough values to read (reading bool)!");
+
                 EasyLua::Resolvers::StackReadResolver<typeException, int>::resolve(lua, index);
 
                 *out = luaL_checkinteger(lua, index);
@@ -724,8 +744,11 @@ namespace EasyLua
             }
 
             template <bool typeException, int index = 1, typename... parameters>
-            static INLINE int readStack(lua_State *lua, int *out, parameters... params)
+            static INLINE int readStack(lua_State *lua, int* out, parameters... params)
             {
+                if (sizeof...(parameters) > lua_gettop(lua))
+                    throw std::runtime_error("Not enough values to read (reading int)!");
+
                 if (!EasyLua::Resolvers::StackReadResolver<typeException, int>::resolve(lua, index, out))
                     return index;
 
@@ -733,8 +756,11 @@ namespace EasyLua
             }
 
             template <bool typeException, int index = 1, typename... parameters>
-            static INLINE int readStack(lua_State *lua, char *out, const int &outLength, parameters... params)
+            static INLINE int readStack(lua_State* lua, char *out, const int &outLength, parameters... params)
             {
+                if (sizeof...(parameters) > lua_gettop(lua))
+                    throw std::runtime_error("Not enough values to read (reading string)!");
+
                 if (!EasyLua::Resolvers::StackReadResolver<typeException, char *>::resolve(lua, index, out))
                     return index;
 
@@ -750,8 +776,11 @@ namespace EasyLua
             }
 
             template <bool typeException, int index = 1, typename... parameters>
-            static INLINE int readStack(lua_State *lua, std::string *out, parameters... params)
+            static INLINE int readStack(lua_State* lua, std::string *out, parameters... params)
             {
+                if (sizeof...(parameters) > lua_gettop(lua))
+                    throw std::runtime_error("Not enough values to read (reading string)!");
+
                 char *outTest = 0x00;
 
                 if (!EasyLua::Resolvers::StackReadResolver<typeException, char *>::resolve(lua, index, outTest))
@@ -763,15 +792,18 @@ namespace EasyLua
             }
 
             template <bool typeException, int index = 1, typename... parameters>
-            static INLINE int readStack(lua_State *lua, void *out, parameters... params)
+            static INLINE int readStack(lua_State* lua, void* out, parameters... params)
             {
+                if (sizeof...(parameters) > lua_gettop(lua))
+                    throw std::runtime_error("Not enough values to read (reading userdata)!");
+
                 EasyLua::Resolvers::StackReadResolver<typeException, int *>::resolve(lua, index);
 
                 out = lua_touserdata(lua, index);
                 return EasyLua::Utilities::readStack<typeException, index + 1>(lua, params...);
             }
 
-            static void printStack(lua_State *lua)
+            static void printStack(lua_State* lua)
             {
                 std::cout << "Lua Stack Dump ------ " << std::endl;
 
@@ -825,7 +857,7 @@ namespace EasyLua
              *  @note The end programmer should not be using this method directly.
              */
             template <typename... parameters>
-            static INLINE void pushParameters(lua_State *lua, const void *value, parameters... params)
+            static INLINE void pushParameters(lua_State* lua, const void* value, parameters... params)
             {
                 // Tables will stack at the bottom so we correct this as we run
                 lua_pushvalue(lua, 1);
@@ -848,7 +880,7 @@ namespace EasyLua
              *  @param lua A pointer to the lua_State to use for this operation.
              *  @note The end programmer should not be using this method directly.
              */
-            static INLINE void pushParameters(lua_State *lua) { }
+            static INLINE void pushParameters(lua_State* lua) { }
 
             /**
              *  @brief This is one among a family of methods that push an array containing
@@ -857,10 +889,10 @@ namespace EasyLua
              *  @note The end programmer should not be using this method directly.
              */
             template <bool createTable = true>
-            static INLINE void pushTable(lua_State *lua) { }
+            static INLINE void pushTable(lua_State* lua) { }
 
             template <bool createTable = true, typename... parameters>
-            static INLINE void pushTable(lua_State *lua, const char *key, const void *value, parameters... params)
+            static INLINE void pushTable(lua_State* lua, const char* key, const void* value, parameters... params)
             {
                 EasyLua::Resolvers::TableCreationResolver<createTable>::resolve(lua);
                 EasyLua::Utilities::pushTable<false>(lua, params...);
@@ -874,7 +906,7 @@ namespace EasyLua
             }
 
             template <bool typeException, int index = -1>
-            static INLINE int readStack(lua_State *lua) { return -1; }
+            static INLINE int readStack(lua_State* lua) { return -1; }
     }; // End Class Utilities
 
     /**
@@ -884,33 +916,32 @@ namespace EasyLua
      *  @example methodcalls/main.cpp
      */
     template <typename... parameters>
-    static INLINE unsigned int call(lua_State *lua, const char *methodName, parameters... params)
+    static INLINE unsigned int call(lua_State* lua, const char* methodName, parameters... params)
     {
-        const int stackTop = lua_gettop(lua);
-        EasyLua::Utilities::pushParameters(lua, params...);
+        const int oldTop = lua_gettop(lua);
 
-        // We get the method now so it is at a predictable position to move correctly
         lua_getglobal(lua, methodName);
-        lua_insert(lua, 1);
+        EasyLua::Utilities::pushParameters(lua, params...);
 
         lua_call(lua, sizeof...(params), LUA_MULTRET);
 
-        return lua_gettop(lua) - stackTop;
+        return abs(lua_gettop(lua) - oldTop);
     }
 
-    static INLINE unsigned int call(lua_State *lua, const char *methodName, const EasyLua::ParameterCount &parameterCount)
+    static INLINE unsigned int call(lua_State* lua, const char* methodName, const EasyLua::ParameterCount& parameterCount)
     {
         const int stackTop = lua_gettop(lua);
 
         lua_getglobal(lua, methodName);
         lua_insert(lua, 1);
+
         lua_call(lua, parameterCount, LUA_MULTRET);
 
         return lua_gettop(lua) - stackTop;
     }
 
     template <typename... parameters>
-    static INLINE std::pair<int, size_t> pcall(lua_State *lua, const char *methodName, parameters... params)
+    static INLINE std::pair<int, size_t> pcall(lua_State* lua, const char* methodName, parameters... params)
     {
         const int stackTop = lua_gettop(lua);
 
@@ -920,7 +951,7 @@ namespace EasyLua
         return std::make_pair(lua_pcall(lua, sizeof...(params), LUA_MULTRET, 0), lua_gettop(lua) - stackTop);
     }
 
-    static INLINE std::pair<int, size_t> pcall(lua_State *lua, const char *methodName, const EasyLua::ParameterCount &parameterCount)
+    static INLINE std::pair<int, size_t> pcall(lua_State* lua, const char* methodName, const EasyLua::ParameterCount& parameterCount)
     {
         const int stackTop = lua_gettop(lua);
 
@@ -928,7 +959,7 @@ namespace EasyLua
         return std::make_pair(lua_pcall(lua, parameterCount, LUA_MULTRET, 0), lua_gettop(lua) - stackTop);
     }
 
-    static INLINE std::pair<int, size_t> pcall(lua_State *lua, const char *methodName, const char *errorHandler, const EasyLua::ParameterCount &parameterCount)
+    static INLINE std::pair<int, size_t> pcall(lua_State* lua, const char* methodName, const char* errorHandler, const EasyLua::ParameterCount& parameterCount)
     {
         const int stackTop = lua_gettop(lua);
 
@@ -939,7 +970,7 @@ namespace EasyLua
     }
 
     template <typename... parameters>
-    static INLINE std::pair<int, size_t> pcall(lua_State *lua, const char *methodName, const char *errorHandler, parameters... params)
+    static INLINE std::pair<int, size_t> pcall(lua_State* lua, const char* methodName, const char* errorHandler, parameters... params)
     {
         const int stackTop = lua_gettop(lua);
 
