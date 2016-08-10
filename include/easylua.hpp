@@ -19,7 +19,7 @@
 #include <unordered_map>
 #include <type_traits>
 
-#include <lua5.2/lua.hpp>
+#include <lua.hpp>
 
 // Define __forceinline if we're on GCC
 #if defined(__GNUC__) || defined(__GNUG__)
@@ -318,6 +318,10 @@ namespace EasyLua
     {
         // Private Members
         private:
+            void *mBlock;
+
+            unsigned int mBlockIndex;
+
             //! An unordered mapping of keys to stored tables.
             std::unordered_map<std::string, Table*> mTables;
 
@@ -329,48 +333,36 @@ namespace EasyLua
 
         // Public Methods
         public:
+            Table(void) : mBlock(malloc(512)), mBlockIndex(0) { }
+
             //! Standard destructor.
             ~Table(void)
             {
-                // We retain type information here to ensure that the destruction works correctly
-                for (auto it = mTypes.begin(); it != mTypes.end(); it++)
-                {
-                    const std::string name = (*it).first;
-                    auto current = (*it).second;
-
-                    switch (current.second)
-                    {
-                        case EasyLua::EASYLUA_FLOAT:
-                        {
-                            delete reinterpret_cast<float*>(mContents[name]);
-                            break;
-                        }
-
-                        case EasyLua::EASYLUA_STRING:
-                        {
-                            delete reinterpret_cast<std::string*>(mContents[name]);
-                            break;
-                        }
-
-                        case EasyLua::EASYLUA_INTEGER:
-                        {
-                            delete reinterpret_cast<int*>(mContents[name]);
-                            break;
-                        }
-
-                        case EasyLua::EASYLUA_TABLE:
-                        {
-                            // FIXME: Memory issues here
-                            break;
-                        }
-                    }
-                }
+               // free(mBlock);
             }
 
-            void copy(const Table& other)
+            void copy(Table& other)
             {
-                mContents = other.mContents;
-                mTypes = other.mTypes;
+                mTypes.clear();
+                mContents.clear();
+                mBlockIndex = other.mBlockIndex;
+
+                memcpy(mBlock, other.mBlock, 512);
+
+                const size_t myBase = reinterpret_cast<const size_t>(mBlock);
+                const size_t theirBase = reinterpret_cast<const size_t>(other.mBlock);
+
+                for (auto it = other.mTypes.begin(); it != other.mTypes.end(); it++)
+                {
+                    auto current = *it;
+
+                    const std::string& name = current.first;
+                    const unsigned char type = current.second.second;
+                    const size_t offset = reinterpret_cast<const size_t>(other.mContents[name]) - theirBase;
+
+                    mContents[name] = reinterpret_cast<void*>(myBase + offset);
+                    mTypes[name] = std::make_pair(name, type);
+                }
             }
 
             template <typename outType>
@@ -431,10 +423,13 @@ namespace EasyLua
             template <typename storedType>
             void set(std::string key, storedType value)
             {
-                storedType* memory = new storedType(value);
+                const size_t base = reinterpret_cast<const size_t>(mBlock);
+                storedType& memory = *reinterpret_cast<storedType*>(base + mBlockIndex);
+                mBlockIndex += sizeof(storedType);
 
-                mContents[key] = memory;
+                memory = value;
 
+                mContents[key] = &memory;
                 constexpr unsigned char type = Resolvers::TypeIDResolver<storedType>::value;
                 mTypes[key] = std::make_pair(key, type);
             }
