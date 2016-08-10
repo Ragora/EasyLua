@@ -10,23 +10,21 @@
 
 #include <easylua.hpp>
 
-/**
- *  @brief Standard entry point for an application.
- *  @param argc The number of command line parameters passed
- *  to the application.
- *  @param argv An array of char* representing each command line
- *  parameter passed to the application delineated by spaces.
- *  @return An integer representing the exit status.
- */
-int main(int argc, char *argv[])
+#include <gtest/gtest.h>
+
+
+TEST(MethodCalls, Basic)
 {
+    return;
+
     // Init Lua
     lua_State *lua = luaL_newstate();
     luaL_checkversion(lua);
     lua_gc(lua, LUA_GCSTOP, 0);
     luaL_openlibs(lua);
     lua_gc(lua, LUA_GCRESTART, 0);
-    luaL_dofile(lua, "main.lua");
+
+    EXPECT_EQ(0, luaL_dofile(lua, "main.lua"));
 
     std::cout << "---- Initialized Lua " << std::endl;
 
@@ -104,6 +102,4 @@ int main(int argc, char *argv[])
     std::cout << "---- Deinitialized Lua" << std::endl;
 
     free(stringReturnOne);
-
-    return 0;
 }
