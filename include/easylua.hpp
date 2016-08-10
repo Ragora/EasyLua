@@ -7,6 +7,10 @@
  *  at the root of any source distribution for more information.
  */
 
+#ifndef _INCLUDE_EASYLUA_HPP_
+#define _INCLUDE_EASYLUA_HPP_
+
+#include <iostream>
 #include <stdexcept>
 #include <tuple>
 #include <cstdlib>
@@ -15,7 +19,7 @@
 #include <unordered_map>
 #include <type_traits>
 
-#include <lua.hpp>
+#include <lua5.2/lua.hpp>
 
 // Define __forceinline if we're on GCC
 #if defined(__GNUC__) || defined(__GNUG__)
@@ -95,6 +99,12 @@ namespace EasyLua
          */
         template <>
         struct TypeIDResolver<std::string>
+        {
+            static constexpr unsigned char value = EasyLua::EASYLUA_STRING;
+        };
+
+        template <>
+        struct TypeIDResolver<const char*>
         {
             static constexpr unsigned char value = EasyLua::EASYLUA_STRING;
         };
@@ -279,6 +289,21 @@ namespace EasyLua
                 return true;
             }
         };
+
+        template <>
+        struct StackReadResolver<false, bool>
+        {
+            static INLINE bool resolve(lua_State* lua, const int& index, bool* out)
+            {
+                const int type = lua_type(lua, index);
+
+                if (type != LUA_TBOOLEAN)
+                    return false;
+
+                *out = lua_toboolean(lua, index);
+                return true;
+            }
+        };
     }
 
     /**
@@ -351,9 +376,11 @@ namespace EasyLua
             template <typename outType>
             void get(const std::string& key, outType& out)
             {
-                if (mTypes.count(key) == 0)
+                constexpr unsigned char type = EasyLua::Resolvers::TypeIDResolver<outType>::value;
+
+                if (mTypes.find(key) == mTypes.end())
                     throw std::runtime_error("No such key!");
-                else if (mTypes[key].second != EasyLua::Resolvers::TypeIDResolver<outType>::value)
+                else if (mTypes[key].second != type)
                     throw std::runtime_error("Mismatched types!");
 
                 out = *((outType*)(mContents[key]));
@@ -416,29 +443,9 @@ namespace EasyLua
             {
                 mTables[key] = &value;
                 mTypes[key] = std::make_pair(key, EasyLua::EASYLUA_TABLE);
+                mContents[key] = &value;
             }
     };
-
-    template <>
-    void Table::set(std::string key, char* value)
-    {
-        this->set(key, std::string(value));
-    }
-
-    template <>
-    void Table::set(std::string key, const char* value)
-    {
-        this->set(key, std::string(value));
-    }
-
-    template <>
-    void Table::get(const std::string& key, Table& out)
-    {
-        if (mTypes.count(key) == 0)
-            throw std::runtime_error("No such key!");
-
-       // out.copy(mTables[key]);
-    }
 
 
     class HighPerformance
@@ -737,9 +744,9 @@ namespace EasyLua
                 if (sizeof...(parameters) > lua_gettop(lua))
                     throw std::runtime_error("Not enough values to read (reading bool)!");
 
-                EasyLua::Resolvers::StackReadResolver<typeException, int>::resolve(lua, index);
+                EasyLua::Resolvers::StackReadResolver<typeException, bool>::resolve(lua, index, out);
 
-                *out = luaL_checkinteger(lua, index);
+                *out = lua_toboolean(lua, index);
                 return EasyLua::Utilities::readStack<typeException, index + 1>(lua, params...);
             }
 
@@ -838,9 +845,16 @@ namespace EasyLua
                             break;
                         }
 
+                        case LUA_TBOOLEAN:
+                        {
+                            std::cout << "BOOLEAN (" << LUA_TBOOLEAN << ") = " << (lua_toboolean(lua, iteration) ? "true" : "false");
+                            break;
+                        }
+
                         default:
                         {
                             std::cout << "UNKNOWN TYPE (" << currentType << ") ";
+                            break;
                         }
                     }
 
@@ -981,3 +995,5 @@ namespace EasyLua
         return std::make_pair(lua_pcall(lua, sizeof...(params), LUA_MULTRET, sizeof...(params) - 2), lua_gettop(lua) - stackTop);
     } // End "NameSpace" Utilities
 } // End NameSpace EasyLua
+
+#endif // _INCLUDE_EASYLUA_HPP_
