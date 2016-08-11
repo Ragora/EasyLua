@@ -1,7 +1,7 @@
 /**
  *  @file mainpage.hpp
  *  @version 1.0
- *  @date 3/15/2015
+ *  @date 8/10/2016
  *  @author <a href="https://github.com/Ragora">Robert MacGregor</a>
  *  @copyright This software is licensed under the MIT license. Refer to LICENSE.txt
  *  at the root of any source distribution for more information.

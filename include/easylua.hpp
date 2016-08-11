@@ -1,15 +1,19 @@
 /**
  *  @file easylua.hpp
- *  @author Robert MacGregor
  *  @brief The main include file for the EasyLua library.
- *  @date Sunday, March 15th, 2015
- *  @copyright This software is licensed under the MIT license. Refer to LICENSE.txt
- *  at the root of any source distribution for more information.
+ *
+ *  This software is licensed under the MIT license. Refer to LICENSE.txt for
+ *  more information.
+ *
+ *  @date 8/10/2016
+ *  @author Robert MacGregor
+ *  @copyright (c) 2016 Robert MacGregor
  */
 
 #ifndef _INCLUDE_EASYLUA_HPP_
 #define _INCLUDE_EASYLUA_HPP_
 
+#include <assert.h>
 #include <iostream>
 #include <stdexcept>
 #include <tuple>
@@ -19,7 +23,7 @@
 #include <unordered_map>
 #include <type_traits>
 
-#include <lua.hpp>
+#include <lua5.2/lua.hpp>
 
 // Define __forceinline if we're on GCC
 #if defined(__GNUC__) || defined(__GNUG__)
@@ -318,10 +322,6 @@ namespace EasyLua
     {
         // Private Members
         private:
-            void *mBlock;
-
-            unsigned int mBlockIndex;
-
             //! An unordered mapping of keys to stored tables.
             std::unordered_map<std::string, Table*> mTables;
 
@@ -333,119 +333,86 @@ namespace EasyLua
 
         // Public Methods
         public:
-            Table(void) : mBlock(malloc(512)), mBlockIndex(0) { }
+            //! Parameter-less constructor.
+            Table(void);
+
+            /**
+             *  @brief Copy constructor.
+             *  @param other The table to copy from.
+             */
+            Table(Table& other);
 
             //! Standard destructor.
-            ~Table(void)
-            {
-               // free(mBlock);
-            }
+            ~Table(void);
 
-            void copy(Table& other)
-            {
-                mTypes.clear();
-                mContents.clear();
-                mBlockIndex = other.mBlockIndex;
+            /**
+             *  @brief Copies the other table, throwing out any contents we may already have.
+             *  @param other The table to copy from.
+             */
+            void copy(Table& other);
 
-                memcpy(mBlock, other.mBlock, 512);
+            /**
+             *  @brief Clears this table's contents, automatically freeing up any memory allocated
+             *  along the way.
+             *  @param deleteChildren Whether or not we should delete subtables of this table.
+             *  @warning Any subtables currently owned by this table (either directory or indirectly)
+             *  will be deallocated from this call if deleteChildren is true, meaning that they will
+             *  become invalid.
+             */
+            void clear(bool deleteChildren);
 
-                const size_t myBase = reinterpret_cast<const size_t>(mBlock);
-                const size_t theirBase = reinterpret_cast<const size_t>(other.mBlock);
+            /**
+             *  @brief Pushes this table to the Lua stack for later use. When this command completes,
+             *  one new table will be on the Lua stack. This will resolve all the associated Lua calls
+             *  automatically, regardless of the complexity of your table/subtable hierarchy.
+             *  @param lua The Lua state to push this table to.
+             */
+            void push(lua_State* lua);
 
-                for (auto it = other.mTypes.begin(); it != other.mTypes.end(); it++)
-                {
-                    auto current = *it;
+            /**
+             *  @brief Attaches a subtable to the table on the given property name.
+             *  @param key The name of the property to attach the table to.
+             *  @param value The table to attach.
+             */
+            void setTable(const std::string& key, Table& value);
 
-                    const std::string& name = current.first;
-                    const unsigned char type = current.second.second;
-                    const size_t offset = reinterpret_cast<const size_t>(other.mContents[name]) - theirBase;
-
-                    mContents[name] = reinterpret_cast<void*>(myBase + offset);
-                    mTypes[name] = std::make_pair(name, type);
-                }
-            }
-
+            /**
+             *  @brief Reads the property in the table, returning the value if there is one.
+             *  @param key The name of the property to read.
+             *  @param out The reference to read out to. The actual read data type will mirror the
+             *  type of the output variable automatically, writing to it.
+             *  @throw std::runtime_error Thrown when there is a type mismatch.
+             *  @throw std::out_of_range Thrown when the requested key does not exist.
+             */
             template <typename outType>
             void get(const std::string& key, outType& out)
             {
                 constexpr unsigned char type = EasyLua::Resolvers::TypeIDResolver<outType>::value;
 
                 if (mTypes.find(key) == mTypes.end())
-                    throw std::runtime_error("No such key!");
+                    throw std::out_of_range("No such key!");
                 else if (mTypes[key].second != type)
                     throw std::runtime_error("Mismatched types!");
 
                 out = *((outType*)(mContents[key]));
             }
 
-            void push(lua_State* lua)
-            {
-                lua_createtable(lua, 0, 0);
-
-                for (auto it = mTypes.begin(); it != mTypes.end(); it++)
-                {
-                    const std::string name = (*it).first;
-                    auto current = (*it).second;
-
-                    lua_pushstring(lua, current.first.data());
-
-                    switch (current.second)
-                    {
-                        case EasyLua::EASYLUA_FLOAT:
-                        {
-                            lua_pushnumber(lua, *reinterpret_cast<float*>(mContents[name]));
-                            break;
-                        }
-
-                        case EasyLua::EASYLUA_STRING:
-                        {
-                            lua_pushstring(lua, reinterpret_cast<std::string*>(mContents[name])->data());
-                            break;
-                        }
-
-                        case EasyLua::EASYLUA_INTEGER:
-                        {
-                            lua_pushinteger(lua, *reinterpret_cast<int*>(mContents[name]));
-                            break;
-                        }
-
-                        case EasyLua::EASYLUA_TABLE:
-                        {
-                            mTables[name]->push(lua);
-                            break;
-                        }
-                    }
-
-                    lua_settable(lua, -3);
-                }
-            }
-
+            /**
+             *  @brief Sets the property in the table.
+             *  @param key The name of the property to write to. It need not already exist. If it already exists,
+             *  then the value is rewritten and the type is changed if the types differ.
+             *  @param value The value reference to write. The actual type used when writing this value is deduced
+             *  from the value itself.
+             */
             template <typename storedType>
             void set(std::string key, storedType value)
             {
-                const size_t base = reinterpret_cast<const size_t>(mBlock);
-                storedType& memory = *reinterpret_cast<storedType*>(base + mBlockIndex);
-                mBlockIndex += sizeof(storedType);
+                storedType* memory = reinterpret_cast<storedType*>(new storedType(value));
 
-                memory = value;
-
-                mContents[key] = &memory;
+                mContents[key] = memory;
                 constexpr unsigned char type = Resolvers::TypeIDResolver<storedType>::value;
                 mTypes[key] = std::make_pair(key, type);
             }
-
-            void setTable(const std::string& key, Table& value)
-            {
-                mTables[key] = &value;
-                mTypes[key] = std::make_pair(key, EasyLua::EASYLUA_TABLE);
-                mContents[key] = &value;
-            }
-    };
-
-
-    class HighPerformance
-    {
-
     };
 
     /**

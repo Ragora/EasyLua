@@ -2,8 +2,13 @@
  *  @file main.cpp
  *  @brief Example coding showing the different Lua method calling
  *  features.
- *  @copyright This software is licensed under the MIT license. Refer to LICENSE.txt
- *  at the root of any source distribution for more information.
+ *
+ *  This software is licensed under the MIT license. Refer to LICENSE.txt for
+ *  more information.
+ *
+ *  @date 8/10/2016
+ *  @author Robert MacGregor
+ *  @copyright (c) 2016 Robert MacGregor
  */
 
 #include <iostream>
