@@ -407,7 +407,7 @@ namespace EasyLua
             template <typename storedType>
             void set(std::string key, storedType value)
             {
-                storedType* memory = reinterpret_cast<storedType*>(new storedType(value));
+                storedType* memory = new storedType(value);
 
                 mContents[key] = memory;
                 constexpr unsigned char type = Resolvers::TypeIDResolver<storedType>::value;
