@@ -12,24 +12,27 @@
     WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 """
 
-config_setting(
-    name = "enable_hl_tables",
-    define_values = {
-        "enable_hl_tables": "yes",
-    }
-)
-
-cc_library(
-    name = "easylua",
+cc_test(
+    name = "tests",
     srcs = [
-        "include/easylua.hpp",
-        "source/easylua.cpp"
-    ],
-    includes = [
-        "include"
-    ],
+        "main.cpp",
+        "test_methodcalls.cpp",
+        "test_subtables.cpp"
+    ] + select({
+        "//conditions:default": [],
+        "//:enable_hl_tables": [
+            "test_hltables.cpp",
+        ]
+    }),
     deps = [
-        "@lua//:lua"
+        "@gtest//:gtest",
+        "@lua//:lua",
+        "//:easylua"
     ],
-    visibility = ["//visibility:public"]
+    linkopts = [
+        "-ldl"
+    ],
+    data = [
+        "main.lua"
+    ]
 )

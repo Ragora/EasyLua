@@ -25,7 +25,7 @@ TEST(Subtables, Basic)
     luaL_openlibs(lua);
     lua_gc(lua, LUA_GCRESTART, 0);
 
-    EXPECT_EQ(0, luaL_dofile(lua, "main.lua"));
+    EXPECT_EQ(0, luaL_dofile(lua, "tests/main.lua"));
 
     /*
         The call below performs the following Lua call:

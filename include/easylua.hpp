@@ -23,7 +23,7 @@
 #include <unordered_map>
 #include <type_traits>
 
-#include <lua5.2/lua.hpp>
+#include <lua.hpp>
 
 // Define __forceinline if we're on GCC
 #if defined(__GNUC__) || defined(__GNUG__)
